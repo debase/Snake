@@ -10,6 +10,7 @@ LAB EXERCISE 9 - Analog input and PWM
  *----------------------------------------------------------------------------*/
 
 #include <string.h>
+#include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -72,7 +73,50 @@ Define serial output
 
 //Define variables
 char map[42][103];
+bool food = false;
+pos foodPoint;
+bool add = false;
 
+bool checkFoodPos()
+{
+	if (foodPoint.x == 0 || foodPoint.x == 41 || foodPoint.y == 0 || foodPoint.y == 99)
+		return false;
+	int i = Snake.size();
+	int j = 0;
+	while (j < i)
+	{
+		if (foodPoint.x == Snake[j].x && foodPoint.y == Snake[j].y)
+			return false;
+		++j;
+	}
+	return true;
+}
+
+void setFood()
+{
+	if (food == false)
+	{
+		time_t tmp = time(NULL);
+		srand(tmp);
+		foodPoint.x = rand() % 42;
+		foodPoint.y = rand() % 103;
+		if (checkFoodPos() == false)
+		{
+			usleep(500);
+			setFood();
+		}
+		else
+		{
+			food = true;
+			printf("%d   %d\n", foodPoint.x, foodPoint.y);
+			map[foodPoint.x][foodPoint.y] = '+';
+		}
+	}
+	else
+	{
+		map[foodPoint.x][foodPoint.y] = '+';
+	}
+}
 
 /*----------------------------------------------------------------------------
  MAIN function
@@ -170,6 +214,11 @@ char check_collison()
 		{
 			return GAME_OVER;
 		}
+		if (head.x == foodPoint.x && head.y == foodPoint.y)
+		{
+			food = false;
+			add = true;
+		}
 		++i;
 	}
 	return SUCCESS;
@@ -181,6 +230,7 @@ char check_collison()
 #define BACK 3
 
 int direction = FORWARD;
+
 
 void moveSnake()
 {
@@ -264,6 +314,17 @@ void moveSnake()
 			}
 			Snake[0].x += 1;
 			break;
+
+		default:
+			break;
+	}
+	if (add == true)
+	{
+		if ((j - 1) % 2 == 0)
+			Snake.push_back(tmp2);
+		else
+			Snake.push_back(tmp);
+		add = false;
 	}
 }
 
@@ -295,7 +356,7 @@ int main(){
 	initSnake();
 	while(1){
 		tv.tv_sec = 0;
-		tv.tv_usec = 500000;
+		tv.tv_usec = 50000;
 	 
 		FD_ZERO(&readfds);
 		FD_SET(STDIN, &readfds);
@@ -324,6 +385,7 @@ int main(){
 			}
 		}
 		populateMap();
+		setFood();
 		moveSnake();
 		if (check_collison() == GAME_OVER) 
 			break;
